@@ -1,10 +1,10 @@
 from setuptools import setup
 
 setup(
-    name='backtest',
+    name='SushiLife',
     version='1.0',
-    packages=['backtest', 'backtest.data'],
-    url='https://github.com/swseo92/backtest',
+    packages=['SushiLife', 'SushiLife.data'],
+    url='https://github.com/swseo92/SushiLife',
     license='',
     author='swseo92',
     author_email='swseo.astro@gmail.com',
