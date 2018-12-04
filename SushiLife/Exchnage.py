@@ -1,5 +1,4 @@
 import numpy as np
-from data.loader import *
 
 
 class Exchange:

@@ -2,7 +2,6 @@ import numpy as np
 import h5py
 import pickle
 import dask.array as da
-from data.loader import *
 
 
 def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):

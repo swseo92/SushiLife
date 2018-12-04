@@ -2,14 +2,9 @@ import numpy as np
 import pandas as pd
 import h5py
 
-from data.loader import *
-from DataAsset import *
-from Updater import *
-from Exchnage import *
-from Account import *
-from Agent import *
+from SushiLife import *
 
-f = h5py.File("test.hdf5", "r")
+f = h5py.File("templete.hdf5", "r")
 array_stock, axis_stock = load_data(f, "stock", chunks=5, in_memory=True)
 array_value, axis_value = load_data(f, "value", chunks=5, in_memory=True)
 
