@@ -88,10 +88,10 @@ class StockAccount(AssetAccount):
                     print("매수 실패 : ", names[i], "주문가", 주문가격[i], "주문수량 : ", 주문수량[i])
 
         names = np.array(names)[체결]
-        체결가, 현재가 = 체결가[체결], 현재가[체결]
+        체결가, 현재가 = 체결가[체결].astype("float64"), 현재가[체결]
         주문수량 = np.array(주문수량)[체결]
 
-        self._add_assets(names, 체결가, 현재가, 주문수량)
+        self._add_assets(names[주문수량 > 0], 체결가[주문수량 > 0], 현재가[주문수량 > 0], 주문수량[주문수량 > 0])
 
         거래대금 = np.sum(체결가 * 주문수량)
         return 거래대금
@@ -114,16 +114,17 @@ class StockAccount(AssetAccount):
                     print("매도 실패 : ", names[i], "주문가 : ", 주문가격[i], "주문수량 : ", 주문수량[i])
 
         names = np.array(names)[체결]
-        체결가 = 체결가[체결]
+        체결가 = 체결가[체결].astype("float64")
         주문수량 = np.array(주문수량)[체결]
-        self._remove_assets(names, 체결가, 주문수량)
+        self._remove_assets(names[주문수량 > 0], 체결가[주문수량 > 0], 주문수량[주문수량 > 0])
 
-        거래대금 = np.sum(체결가 * 주문수량) * (100 - self._tax - self._fee - self._slippage) / 100
+        거래대금 = np.sum((체결가 * 주문수량 * (100 - self._tax - self._fee - self._slippage) / 100).astype("int64"))
         return 거래대금
 
     def _get_current_price(self):
         names = list(self.keys())
-        current_price = self._exchange.get_assets_info(codes=names, fields=["현재가", "대비"])
+        # current_price = self._exchange.get_assets_info(codes=names, fields=["현재가", "대비"])
+        current_price = self._exchange._DataAsset.get_info(self._date, num=1, codes=names, fields=["현재가", "대비"]).reshape(-1, 2)
 
         return names, current_price
 

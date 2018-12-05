@@ -18,7 +18,6 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):
         dates = dates
 
     codes = list(data_df.keys())
-
     list_data = list()
 
     fields = list(data_df[codes[0]].columns)
@@ -33,12 +32,22 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):
     array = np.concatenate(list_data, axis=1)
 
     if dtype == "stock":
-        array[:, :, -1][np.where(array[:, :, -1] == "코스피")] = 0
-        array[:, :, -1][np.where(array[:, :, -1] == "코스닥")] = 1
+
+        idx = fields.index("시장구분")
+
+        array[:, :, idx][np.where(array[:, :, idx] == "코스피")] = 0
+        array[:, :, idx][np.where(array[:, :, idx] == "코스닥")] = 1
         array = array.astype('f')
 
     f = h5py.File(filename, "a")
-    f.create_dataset(name, data=array)
+    try:
+        f.create_dataset(name, data=array)
+    except:
+        del f[name]
+        f.close()
+
+        f = h5py.File(filename, "a")
+        f.create_dataset(name, data=array)
     f.close()
 
     with open("%s-%s.axis" % (filename, name), "wb") as f:
@@ -58,18 +67,11 @@ def load_data(file, name, chunks=5, in_memory=False):
     return array, axis
 
 class DataAsset:
-    def __init__(self, array, axis, chunks=300):
+    def __init__(self, array, axis):
         #         array, axis = make_data(data_df)
 
-        self.dates, self.codes, self.fields = axis
-
+        self.dates, self.codes, self.fields = list(axis[0]), list(axis[1]), list(axis[2])
         self.array = array
-
-        self._chunks = chunks
-        self._dates_chunk = []
-
-        self._date = None
-        self.df_date = None
 
     def get_info(self, date, num=1, codes=None, fields=None):
         """
@@ -80,8 +82,11 @@ class DataAsset:
         :param fields: list, 반환할 필드들의 리스트
         :return: numpy.array
         """
-        idx_date = self._dates_chunk.index(date)
-        array = self._array_chunk[max(0, idx_date - num + 1):idx_date + 1]
+        # if date not in self._dates_chunk:
+        #     self._make_chunk(date)
+
+        idx_date = self.dates.index(date)
+        array = self.array[max(0, idx_date - num + 1):idx_date + 1]
 
         if codes is not None:
             idx_codes = [self.codes.index(code) for code in codes]
@@ -95,15 +100,8 @@ class DataAsset:
 
         return array.compute()
 
-    def _make_chunk(self):
-        idx_date = self.dates.index(self._date)
-        self._dates_chunk = self.dates[max(0, idx_date - self._chunks):idx_date + self._chunks]
-        self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks]
-
     def update_date(self, date):
-        self._date = date
-        if date not in self._dates_chunk:
-            self._make_chunk()
+        pass
 
-    def reset(self, date):
+    def init(self, date):
         self.update_date(date)

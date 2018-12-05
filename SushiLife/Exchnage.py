@@ -13,7 +13,7 @@ class Exchange:
     def buy(self, list_codes, 주문가격, 주문종류=None, 주문시간=None):
         OCLHVVM = self.get_assets_info(codes=list_codes)
         market_type = OCLHVVM[:, -1]
-        OCLHVVM = OCLHVVM[:, :-2].astype("int64")
+        OCLHVVM = OCLHVVM[:, :-2]
 
         주문가격 = cal_price_tick_unit(주문가격, market_type)
 
@@ -28,8 +28,7 @@ class Exchange:
             주문시간 = np.array(주문시간)
 
         주문시간 = np.array(주문시간)
-
-        체결가 = np.zeros_like(list_codes, dtype="int") * np.nan  # 체결가가 nan인 경우 미체결, 숫자인 경우 체결가격
+        체결가 = np.zeros_like(주문가격) * np.nan  # 체결가가 nan인 경우 미체결, 숫자인 경우 체결가격
 
         # 체결조건 (시간순서로)
         cond1 = (OCLHVVM[:, 4] == 0) | (np.isnan(OCLHVVM[:, 4]))  # 미체결, 거래량이 0이거나 상장되지 않음
@@ -54,7 +53,7 @@ class Exchange:
     def sell(self, list_codes, 주문가격, 주문종류=None, 주문시간=None):
         OCLHVVM = self.get_assets_info(codes=list_codes)
         market_type = OCLHVVM[:, -1]
-        OCLHVVM = OCLHVVM[:, :-2].astype("int64")
+        OCLHVVM = OCLHVVM[:, :-2]
 
         주문가격 = cal_price_tick_unit(주문가격, market_type)
 
@@ -70,10 +69,10 @@ class Exchange:
 
         주문시간 = np.array(주문시간)
 
-        체결가 = np.zeros_like(list_codes, dtype="int") * np.nan  # 체결가가 nan인 경우 미체결, 숫자인 경우 체결가격
+        체결가 = np.zeros_like(주문가격) * np.nan  # 체결가가 nan인 경우 미체결, 숫자인 경우 체결가격
 
         # 체결조건 (시간순서로)
-        cond1 = (OCLHVVM[:, 4] == 0) | (np.isnan(OCLHVVM[:, 4]))  # 미체결, 거래량이 0이거나 상장되지 않음
+        cond1 = (OCLHVVM[:, 4] == 0) | (np.isnan(OCLHVVM[:, 1]))  # 미체결, 거래량이 0이거나 상장되지 않음
         cond2 = (주문시간 == "장전") & (OCLHVVM[:, 0] >= 주문가격)  # 체결, 장 시작과 동시에 체결
         cond3 = OCLHVVM[:, 3] >= 주문가격  # 체결, 장중 체결 : 저가 > 판매가
         cond4 = OCLHVVM[:, 2] >= 주문가격  # 체결, 장중 체결 : 고가 > 판매가
@@ -112,7 +111,7 @@ class Exchange:
         self._date = date
         self._get_OCLHVV()
 
-    def reset(self, date):
+    def init(self, date):
         self.update_date(date)
 
     def _get_OCLHVV(self):
@@ -131,7 +130,7 @@ class Exchange:
 def cal_price_tick_unit(price, market_type):
     price = np.array(price)
     market_type = np.array(market_type).reshape(-1)
-    tick_unit = np.zeros_like(price)
+    tick_unit = np.zeros_like(price, dtype="float64")
 
     kosdaq = (market_type == 1)  # type : 0: 코스피, 1: 코스닥
     tick_unit[kosdaq] = 100
@@ -148,5 +147,5 @@ def cal_price_tick_unit(price, market_type):
     tick_unit[~kosdaq & (price < 5000)] = 5
     tick_unit[~kosdaq & (price < 1000)] = 1
 
-    price = ((price / tick_unit) * tick_unit).astype("i")
+    price = np.floor(price / tick_unit) * tick_unit
     return price
