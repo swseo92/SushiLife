@@ -92,17 +92,18 @@ class Exchange:
 
     def set_DataAsset(self, data_asset):
         self._DataAsset = data_asset
-
         self.codes = data_asset.codes
+        self.code2idx = data_asset.code2idx
+        self.field2idx = data_asset.field2idx
 
     def get_assets_info(self, codes=None, fields=None):
         array = self._OCLHVVM[:]
 
         if codes is not None:
-            idx_codes = [self.codes.index(code) for code in codes]
+            idx_codes = [self.code2idx[code] for code in codes]
             array = array[idx_codes, :]
         if fields is not None:
-            idx_fields = [self.fields.index(field) for field in fields]
+            idx_fields = [self.field2idx[field] for field in fields]
             array = array[:, idx_fields]
 
         return array
@@ -130,7 +131,7 @@ class Exchange:
 def cal_price_tick_unit(price, market_type):
     price = np.array(price)
     market_type = np.array(market_type).reshape(-1)
-    tick_unit = np.zeros_like(price, dtype="float64")
+    tick_unit = np.zeros_like(price)
 
     kosdaq = (market_type == 1)  # type : 0: 코스피, 1: 코스닥
     tick_unit[kosdaq] = 100

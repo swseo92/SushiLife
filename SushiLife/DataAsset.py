@@ -67,11 +67,25 @@ def load_data(file, name, chunks=5, in_memory=False):
     return array, axis
 
 class DataAsset:
-    def __init__(self, array, axis):
+    def __init__(self, array, axis, chunks=300):
         #         array, axis = make_data(data_df)
 
         self.dates, self.codes, self.fields = list(axis[0]), list(axis[1]), list(axis[2])
         self.array = array
+
+        self.code2idx = dict()
+        for i in range(len(self.codes)):
+            self.code2idx[self.codes[i]] = i
+
+        self.field2idx = dict()
+        for i in range(len(self.fields)):
+            self.field2idx[self.fields[i]] = i
+
+
+        self._chunks = chunks
+        self._dates_chunk = []
+
+        self._date = None
 
     def get_info(self, date, num=1, codes=None, fields=None):
         """
@@ -82,26 +96,35 @@ class DataAsset:
         :param fields: list, 반환할 필드들의 리스트
         :return: numpy.array
         """
-        # if date not in self._dates_chunk:
-        #     self._make_chunk(date)
+        if date not in self._dates_chunk:
+            self._make_chunk(date)
+        idx_date = self._dates_chunk.index(date)
+        array = self._array_chunk[max(0, idx_date - num + 1):idx_date + 1]
 
-        idx_date = self.dates.index(date)
-        array = self.array[max(0, idx_date - num + 1):idx_date + 1]
+        # idx_date = self.dates.index(date)
+        # array = self.array[max(0, idx_date - num + 1):idx_date + 1]
 
         if codes is not None:
-            idx_codes = [self.codes.index(code) for code in codes]
+            idx_codes = [self.code2idx[code] for code in codes]
             array = array[:, idx_codes, :]
         if fields is not None:
-            idx_fields = [self.fields.index(field) for field in fields]
+            idx_fields = [self.field2idx[field] for field in fields]
             array = array[:, :, idx_fields]
 
         if num == 1:
             array = array[0]
 
-        return array.compute()
+        return array
+
+    def _make_chunk(self):
+        idx_date = self.dates.index(self._date)
+        self._dates_chunk = self.dates[max(0, idx_date - self._chunks):idx_date + self._chunks]
+        self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks].compute()
 
     def update_date(self, date):
-        pass
+        self._date = date
+        if date not in self._dates_chunk:
+            self._make_chunk()
 
     def init(self, date):
         self.update_date(date)

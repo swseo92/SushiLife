@@ -13,6 +13,7 @@ class AssetAccount(dict):
 
         self._date = None
         self._asset_info = None  # (날짜, 이름, 데이터) 3개의 axis로 구성된 array
+        self._total_balance = 0
 
         # self._balance = dict()
         self._tax, self._fee, self._slippage = cost
@@ -45,11 +46,11 @@ class AssetAccount(dict):
                 del self[names[i]]
 
     def get_total_balance(self):
-        total_balance = 0
-        for name in self.keys():
-            total_balance += self[name]["현재가"] * self[name]["보유수량"]
+        # self._total_balance = 0
+        # for name in self.keys():
+        #     self._total_balance += self[name]["현재가"] * self[name]["보유수량"]
 
-        return total_balance
+        return self._total_balance
 
     def _get_current_price(self):
         names = list(self.keys())
@@ -59,8 +60,11 @@ class AssetAccount(dict):
 
     def _apply_current_price(self):
         names, current_price = self._get_current_price()
+
+        self._total_balance = 0
         for i in range(len(names)):
             self[names[i]]["현재가"] = current_price[i]
+            self._total_balance += self[names[i]]["현재가"] * self[names[i]]["보유수량"]
 
     def update_from_agent(self, date):
         self._date = date
@@ -151,3 +155,4 @@ class StockAccount(AssetAccount):
                     self[names[i]]["보유수량"] = int(self[names[i]]["보유수량"] / 수정계수)
 
                 self[names[i]]["현재가"] = current_price[i, 0]
+                self._total_balance += self[names[i]]["현재가"] * self[names[i]]["보유수량"]
