@@ -134,6 +134,7 @@ class StockAccount(AssetAccount):
 
     def _apply_current_price(self):
         names, current_price = self._get_current_price()
+        self._total_balance = 0
         for i in range(len(names)):
             현재가 = current_price[i, 0]
             대비 = current_price[i, 1]

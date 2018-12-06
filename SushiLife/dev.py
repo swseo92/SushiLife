@@ -15,7 +15,7 @@ array_vol, axis_vol = load_data(f, "변동성", chunks=5, in_memory=False)
 data_stock = DataAsset(array_stock, axis_stock)
 data_vol = DataAsset(array_vol, axis_vol)
 
-updater = Updater(pd.Timestamp(2010, 1, 1), data_stock.dates)
+updater = Updater(pd.Timestamp(2003, 1, 1), data_stock.dates)
 
 # 거래소 생성
 exchange_stock = Exchange()
