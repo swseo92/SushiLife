@@ -1,4 +1,8 @@
 import numpy as np
+import copy
+import pyximport
+pyximport.install()
+from SushiLife import Account_cython
 
 
 class AssetAccount(dict):
@@ -7,7 +11,7 @@ class AssetAccount(dict):
     """
 
     def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True):
-        self._출력 = 출력
+        self._print = 출력
         self.type = "Account"
         self._exchange = exchange
 
@@ -46,10 +50,6 @@ class AssetAccount(dict):
                 del self[names[i]]
 
     def get_total_balance(self):
-        # self._total_balance = 0
-        # for name in self.keys():
-        #     self._total_balance += self[name]["현재가"] * self[name]["보유수량"]
-
         return self._total_balance
 
     def _get_current_price(self):
@@ -84,7 +84,7 @@ class StockAccount(AssetAccount):
         체결가, 현재가 = self._exchange.buy(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
 
         체결 = ~np.isnan(체결가)
-        if self._출력:
+        if self._print:
             for i in range(len(체결)):
                 if 체결[i]:
                     print("매수 체결 : ", names[i], "체결가 : ", 체결가[i], "주문수량 : ", 주문수량[i])
@@ -104,7 +104,7 @@ class StockAccount(AssetAccount):
         체결가 = self._exchange.sell(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
 
         체결 = ~np.isnan(체결가)
-        if self._출력 == True:
+        if self._print == True:
             for i in range(len(체결)):
                 if 체결[i]:
                     수익률 = (체결가[i] * (100 - self._tax - self._fee - self._slippage) / 100 - self[names[i]]["평단가"]) / \
@@ -128,26 +128,31 @@ class StockAccount(AssetAccount):
     def _get_current_price(self):
         names = list(self.keys())
         # current_price = self._exchange.get_assets_info(codes=names, fields=["현재가", "대비"])
-        current_price = self._exchange._DataAsset.get_info(self._date, num=1, codes=names, fields=["현재가", "대비"]).reshape(-1, 2)
+        current_price = self._exchange._DataAsset.get_info(self._date, num=1, codes=names,
+                                                           fields=["현재가", "대비"]).reshape(-1, 2)
 
         return names, current_price
 
     def _apply_current_price(self):
         names, current_price = self._get_current_price()
+        self, self._total_balance = Account_cython.apply(self, names, current_price)
+
+    def _apply_current_price2(self):
+        names, current_price = self._get_current_price()
         self._total_balance = 0
         for i in range(len(names)):
             현재가 = current_price[i, 0]
-            대비 = current_price[i, 1]
 
             if np.isnan(현재가):
                 del self[names[i]]
-                if self._출력:
+                if self._print:
                     print("\x1b[31m\"%s\"\x1b[0m" % (names[i] + '  상장폐지 !!! ###################################'))
             else:
                 전일종가 = self[names[i]]["현재가"]
                 등락률 = 현재가 / 전일종가
 
                 if (등락률 > 1.35) or ((등락률 < 0.65)):
+                    대비 = current_price[i, 1]
                     수정전일종가 = 현재가 - 대비
                     수정계수 = 수정전일종가 / 전일종가
                     if 수정계수 == 0:
@@ -155,5 +160,5 @@ class StockAccount(AssetAccount):
                     self[names[i]]["평단가"] = self[names[i]]["평단가"] * 수정계수
                     self[names[i]]["보유수량"] = int(self[names[i]]["보유수량"] / 수정계수)
 
-                self[names[i]]["현재가"] = current_price[i, 0]
-                self._total_balance += self[names[i]]["현재가"] * self[names[i]]["보유수량"]
+                self[names[i]]["현재가"] = 현재가
+                self._total_balance += 현재가 * self[names[i]]["보유수량"]

@@ -70,9 +70,10 @@ class DataAsset:
     def __init__(self, array, axis, chunks=300):
         #         array, axis = make_data(data_df)
 
-        self.dates, self.codes, self.fields = list(axis[0]), list(axis[1]), list(axis[2])
+        self.dates, self.codes, self.fields = np.array(axis[0]), np.array(axis[1]), np.array(axis[2])
         self.array = array
 
+        # 해당 코드 및 필드의 index를 빠르게 찾기위해 dictionary를 사용
         self.code2idx = dict()
         for i in range(len(self.codes)):
             self.code2idx[self.codes[i]] = i
@@ -97,12 +98,9 @@ class DataAsset:
         :return: numpy.array
         """
         if date not in self._dates_chunk:
-            self._make_chunk(date)
+            self._make_chunk()
         idx_date = self._dates_chunk.index(date)
         array = self._array_chunk[max(0, idx_date - num + 1):idx_date + 1]
-
-        # idx_date = self.dates.index(date)
-        # array = self.array[max(0, idx_date - num + 1):idx_date + 1]
 
         if codes is not None:
             idx_codes = [self.code2idx[code] for code in codes]
@@ -117,8 +115,9 @@ class DataAsset:
         return array
 
     def _make_chunk(self):
-        idx_date = self.dates.index(self._date)
-        self._dates_chunk = self.dates[max(0, idx_date - self._chunks):idx_date + self._chunks]
+        # 현재 날짜에 인접한 날짜의 array들을 미리 메모리에 읽어 효율을 높인다.
+        idx_date = list(self.dates).index(self._date)
+        self._dates_chunk = list(self.dates)[max(0, idx_date - self._chunks):idx_date + self._chunks]
         self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks].compute()
 
     def update_date(self, date):

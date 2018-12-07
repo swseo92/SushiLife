@@ -4,14 +4,14 @@ import h5py
 
 from SushiLife import *
 
-f = h5py.File("templete.hdf5", "r")
-array_stock, axis_stock = load_data(f, "stock", chunks=5, in_memory=True)
-array_value, axis_value = load_data(f, "value", chunks=5, in_memory=True)
+f = h5py.File("../data/stock_info.hdf5", "r")
+array_stock, axis_stock = load_data(f, "stock", chunks=5, in_memory=False)
+array_vol, axis_vol = load_data(f, "변동성", chunks=5, in_memory=False)
 
-data_stock = DataAsset(array_stock, axis_stock, chunks=5)
-data_value = DataAsset(array_value, axis_value, chunks=5)
+data_stock = DataAsset(array_stock, axis_stock)
+data_vol = DataAsset(array_vol, axis_vol)
 
-updater = Updater(pd.Timestamp(2002, 6, 15), data_stock.dates)
+updater = Updater(pd.Timestamp(2003, 1, 1), data_stock.dates)
 
 # 거래소 생성
 exchange_stock = Exchange()
@@ -21,65 +21,88 @@ exchange_stock.set_DataAsset(data_stock)
 stock_account = StockAccount(exchange_stock, 출력=False)
 
 # 거래 에이전트 생성 및 주식 계좌 등록
-agent = Agent(1e8, 출력=False)
+agent = Agent(1e10, 출력=True)
 agent.set_account("stock", stock_account)
 
 # 날짜가 변할시 업데이트 요청
-updater.set_instance4update(data_stock)
-updater.set_instance4update(data_value)
+updater.set_data(data_stock)
+updater.set_data(data_vol)
 
-updater.set_instance4update(exchange_stock)
+updater.set_agent(agent)
+updater.set_exchange(exchange_stock)
 
-updater.set_instance4update(agent)
+updater.initialization()
 
-updater.reset()
-columns = ["상장시가총액(원)", "지배주주순이익(원)(직전4분기)", "지배주주지분(원)",
-           "현금흐름(원)(직전4분기)", "매출액(원)(직전4분기)"]
-
+t = True
 while updater._date != updater._list_date[-1]:
-    print(updater._date)
-    fin_stat = data_value.get_info(updater._date, num=2,
-                                   fields=columns)
+    # 가격조건
+    if t:
+        가격데이터 = data_stock.get_info(updater._date, num=300, fields=["현재가", "거래대금(원)"])
+        t = False
+    else:
+        가격데이터_오늘 = data_stock.get_info(updater._date, num=1, fields=["현재가", "거래대금(원)"]).reshape(1, -1, 2)
+        가격데이터 = np.concatenate((가격데이터[1:], 가격데이터_오늘), axis=0)
 
-    fin_stat = fin_stat[-2]
-    상장시가총액 = fin_stat[:, 0]
+    거래가능 = (가격데이터[:, :, 1] > 0).all(axis=0)
 
-    # 상장종목 고려
-    상장종목 = ~np.isnan(상장시가총액)
+    가격데이터2 = 가격데이터[:, 거래가능, :]
+    종목코드 = np.array(data_stock.codes)[거래가능]
 
-    종목코드 = np.array(data_value.codes)[상장종목]
-    상장시가총액 = 상장시가총액[상장종목]
-    values = 상장시가총액.reshape(-1, 1) / fin_stat[상장종목, 1:]
+    유동성 = np.sum(가격데이터2[-20:, :, 1], axis=0)
+    idx = np.argsort(유동성)[int(0.2 * len(유동성)):]  # 유동성 하위 20% 제거
+    종목코드 = 종목코드[idx]
 
-    # 소형주
-    시가총액순위 = 상장시가총액.argsort().argsort()
-    시가총액조건 = 시가총액순위 < len(시가총액순위) * 0.3  # 상장종목 & 소형주
+    # 변동성조건
+    변동성데이터 = data_vol.get_info(updater._date, num=1, codes=종목코드)
+    vol_rank = 변동성데이터.argsort(axis=0).argsort(axis=0)
+    vol_rank = np.sum(vol_rank, axis=1).argsort(axis=0).argsort(axis=0)
 
-    values = values[시가총액조건, :]
-    종목코드 = 종목코드[시가총액조건]
+    idx = np.argsort(vol_rank)[:int(0.2 * len(유동성))]  # 상위 20% 선정
 
-    # 양수
-    cond_positive = (values > 0).all(axis=1)
-    values = values[cond_positive, :]
-    종목코드 = 종목코드[cond_positive]
+    종목코드 = 종목코드[idx]
+    배팅금액 = agent.total_balance / len(종목코드)
 
-    rank_each = values.argsort(axis=0).argsort(axis=0)
-    sum_rank = np.sum(rank_each, axis=1)
-    rank = sum_rank.argsort(axis=0).argsort(axis=0)
+    리밸런스 = pd.DataFrame({"배팅금액": 배팅금액}, index=종목코드)
 
-    cond_rank = rank < 50
-    매수종목 = np.sort(종목코드[cond_rank])
-
-    # 매도
-    매도종목 = list(agent.accounts["stock"].keys())
-    현재가 = data_stock.get_info(updater._date, codes=매도종목, fields=["현재가"]).reshape(-1)
-    매도수량 = [agent.accounts["stock"][종목코드]["보유수량"] for 종목코드 in 매도종목]
-    agent.sell("stock", 매도종목, 현재가, 매도수량)
-
-    # 매수
-    현재가 = data_stock.get_info(updater._date, codes=매수종목, fields=["현재가"]).reshape(-1).astype("f")
-    거래가능 = ~np.isnan(현재가)
-    매수수량 = (agent.cash / 50 / 현재가[거래가능]).astype("i")
-    agent.buy("stock", 매수종목[거래가능], 현재가[거래가능], 매수수량)
-
+    # 다음날로 이동
     updater.update()
+
+    # 종목선정
+    보유주식 = agent.accounts["stock"]
+    전일종가 = data_stock.get_info(updater._date, num=2, codes=보유주식.keys(), fields=["현재가"])[-2].reshape(-1)
+
+    i = -1
+    for 종목코드 in list(보유주식.keys()):
+        i += 1
+        주문가격 = 전일종가[i]
+        보유수량 = 보유주식[종목코드]["보유수량"]
+
+        if 종목코드 not in 리밸런스.index:
+            최종수량 = 0
+        else:
+            최종수량 = int(리밸런스.at[종목코드, "배팅금액"] / 주문가격)
+
+        if 보유수량 > 최종수량:
+            주문량 = 보유수량 - 최종수량
+            agent.sell("stock", 종목코드, 주문가격 * 1.1, max(1, min(보유수량, int(주문량 / 10))), 주문종류="조건부지정가", 주문시간="장전")
+        else:
+            주문량 = 최종수량 - 보유수량
+
+            agent.sell("stock", 종목코드, 주문가격 * 1.1, int(보유수량), 주문시간="장전")
+            agent.buy("stock", 종목코드, 주문가격 * 0.99, min(주문량, int(최종수량 / 10)), 주문시간="장전")
+
+    전일종가 = data_stock.get_info(updater._date, num=2, codes=리밸런스.index, fields=["현재가"])[-2].reshape(-1)
+
+    i = -1
+    for 종목코드 in 리밸런스.index:
+        i += 1
+        주문가격 = 전일종가[i]
+
+        if 종목코드 in 보유주식.keys():
+            continue
+
+        if 종목코드[1] == "9":
+            continue
+
+        주문량 = int(리밸런스.at[종목코드, "배팅금액"] / 주문가격)
+        agent.buy("stock", 종목코드, 주문가격 * 0.99, max(int(주문량 / 10), 1), 주문시간="장전")

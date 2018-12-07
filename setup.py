@@ -1,4 +1,6 @@
-from setuptools import setup
+from distutils.core import setup
+from Cython.Build import cythonize
+
 
 setup(
     name='SushiLife',
@@ -8,5 +10,7 @@ setup(
     license='',
     author='swseo92',
     author_email='swseo.astro@gmail.com',
-    description=''
+    description='',
+
+    ext_modules=cythonize(["./SushiLife/*.pyx"])
 )
