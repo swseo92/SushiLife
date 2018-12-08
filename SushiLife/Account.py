@@ -127,7 +127,6 @@ class StockAccount(AssetAccount):
 
     def _get_current_price(self):
         names = list(self.keys())
-        # current_price = self._exchange.get_assets_info(codes=names, fields=["현재가", "대비"])
         current_price = self._exchange._DataAsset.get_info(self._date, num=1, codes=names,
                                                            fields=["현재가", "대비"]).reshape(-1, 2)
 
@@ -136,29 +135,3 @@ class StockAccount(AssetAccount):
     def _apply_current_price(self):
         names, current_price = self._get_current_price()
         self, self._total_balance = Account_cython.apply(self, names, current_price)
-
-    def _apply_current_price2(self):
-        names, current_price = self._get_current_price()
-        self._total_balance = 0
-        for i in range(len(names)):
-            현재가 = current_price[i, 0]
-
-            if np.isnan(현재가):
-                del self[names[i]]
-                if self._print:
-                    print("\x1b[31m\"%s\"\x1b[0m" % (names[i] + '  상장폐지 !!! ###################################'))
-            else:
-                전일종가 = self[names[i]]["현재가"]
-                등락률 = 현재가 / 전일종가
-
-                if (등락률 > 1.35) or ((등락률 < 0.65)):
-                    대비 = current_price[i, 1]
-                    수정전일종가 = 현재가 - 대비
-                    수정계수 = 수정전일종가 / 전일종가
-                    if 수정계수 == 0:
-                        print(names[i])
-                    self[names[i]]["평단가"] = self[names[i]]["평단가"] * 수정계수
-                    self[names[i]]["보유수량"] = int(self[names[i]]["보유수량"] / 수정계수)
-
-                self[names[i]]["현재가"] = 현재가
-                self._total_balance += 현재가 * self[names[i]]["보유수량"]
