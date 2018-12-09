@@ -21,7 +21,7 @@ exchange_stock.set_DataAsset(data_stock)
 stock_account = StockAccount(exchange_stock, 출력=False)
 
 # 거래 에이전트 생성 및 주식 계좌 등록
-agent = Agent(1e8, 출력=True)
+agent = Agent(1e8, 출력=False)
 agent.set_account("stock", stock_account)
 
 # 날짜가 변할시 업데이트 요청
@@ -63,24 +63,25 @@ while updater._date != updater._list_date[-1]:
 
     # 매도
     매도종목 = agent.accounts["stock"].keys()
-    매수종목 = df.index
+    매수종목 = np.sort(df.index)
     현재가 = data_stock.get_info(updater._date, codes=매도종목, fields=["현재가"]).reshape(-1)
 
     i = 0
     for 종목코드 in 매도종목:
         매도수량 = agent.accounts["stock"][종목코드]["보유수량"]
-        agent.sell("stock", 종목코드, 현재가[i], 매도수량)
+        agent.sell("stock", 종목코드, 현재가[i], 매도수량, 주문종류="조건부지정가")
         i += 1
 
     # 매수
     현재가 = data_stock.get_info(updater._date, codes=매수종목, fields=["현재가"]).reshape(-1)
     i = 0
     for 종목코드 in 매수종목:
-        매수수량 = (agent.cash / 50 / 현재가[i])
-        agent.buy("stock", 종목코드, 현재가[i], 매수수량)
+        if not np.isnan(현재가[i]):
+            매수수량 = int(agent.total_balance / 50 / 현재가[i])
+            agent.buy("stock", 종목코드, 현재가[i], 매수수량, 주문종류="조건부지정가")
         i += 1
 
-    for i in range(20):
+    for i in range(21):
         if updater._date == updater._list_date[-1]:
             break
         updater.update()

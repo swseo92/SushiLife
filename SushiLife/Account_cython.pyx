@@ -14,6 +14,13 @@ def apply(account, names, current_price):
 
     cdef int i =0
     for name in names:
+        # 전일 결산 후
+        price_yesterday = account[name]["현재가"]
+        shares = account[name]["보유수량"]
+
+        total_balance += price_yesterday * shares
+
+        # 가격을 오늘 가격으로 업데이트 한다.
         if np.isnan(current_price[i, 0]):
             del account[name]
             if account._print:
@@ -29,10 +36,8 @@ def apply(account, names, current_price):
                 if adjust_coeff == 0:
                     print(names[i])
                 account[name]["평단가"] = account[name]["평단가"] * adjust_coeff
-                account[name]["보유수량"] = int(account[name]["보유수량"] / adjust_coeff)
+                account[name]["보유수량"] = int(shares / adjust_coeff)
 
-            shares = account[name]["보유수량"]
-            total_balance += price * shares
             account[name]["현재가"] = price
         i += 1
     return account, total_balance
