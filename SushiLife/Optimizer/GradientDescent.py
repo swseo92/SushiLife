@@ -25,6 +25,8 @@ class GradientDescent:
 
             self.point = point_next
             val_now = val_next
+
+            print(self.point, val_now)
             print("\n\n")
 
         return self.point
