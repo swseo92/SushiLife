@@ -36,7 +36,7 @@ def apply(account, names, current_price):
                 if adjust_coeff == 0:
                     print(names[i])
                 account[name]["평단가"] = account[name]["평단가"] * adjust_coeff
-                account[name]["보유수량"] = int(shares / adjust_coeff)
+                account[name]["보유수량"] = np.floor(shares / adjust_coeff)
 
             account[name]["현재가"] = price
         i += 1

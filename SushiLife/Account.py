@@ -47,8 +47,9 @@ class AssetAccount(dict):
         for i in range(len(names)):
             self[names[i]]["보유수량"] -= 주문수량[i]
 
-            if self[names[i]]["보유수량"] == 0:
-                del self[names[i]]
+        for name in np.unique(names):
+            if self[name]["보유수량"] == 0:
+                del self[name]
 
     def get_total_balance(self):
         return self._total_balance
@@ -123,7 +124,7 @@ class StockAccount(AssetAccount):
         주문수량 = np.array(주문수량)[체결]
         self._remove_assets(names[주문수량 > 0], 체결가[주문수량 > 0], 주문수량[주문수량 > 0])
 
-        거래대금 = np.sum((체결가 * 주문수량).astype("int64")) * self._TC
+        거래대금 = np.sum(체결가 * 주문수량) * self._TC
         return 거래대금
 
     def _get_current_price(self):
