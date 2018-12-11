@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Agent:
-    def __init__(self, initial_cash, 출력=True):
+    def __init__(self, initial_cash, 레버리지=1, 출력=True):
         self._출력 = 출력
         self._date = None
 
@@ -10,10 +10,12 @@ class Agent:
         self.cash = initial_cash
         self.total_balance = initial_cash
 
+        self._레버리지 = 레버리지
+
         self.accounts = dict()  # 여러 자산군에 대한 계좌
         self._basket = dict()  # 해당일에 구매리스트를 받기위한 바구니
 
-        self.report = {"수익률(%)": [], "누적수익률(%)": [], "총자산(원)": [],
+        self.report = {"수익률(%)": [], "누적수익률(%)": [], "총자산(원)": [], "현금자산": [], "현물자산": [],
                        "CAGR(%)": [], "일평균수익률(%)": [], "MDD": [], "최대수익률(%)": [], "날짜": []}
 
     def set_account(self, name, account):
@@ -59,9 +61,10 @@ class Agent:
         주문수량 = np.array(주문수량)
 
         cash_required = np.sum(주문가격 * 주문수량)
+        cash_available = (self._레버리지 - 1) * self.total_balance + self.cash
 
-        if cash_required > self.cash:
-            idx = np.sum(np.cumsum(주문가격 * 주문수량) < self.cash) - 1
+        if cash_required > cash_available:
+            idx = np.sum(np.cumsum(주문가격 * 주문수량) < cash_available) - 1
             if idx == -1:
                 return False
 
@@ -104,7 +107,7 @@ class Agent:
 
     def init(self, date):
         self._date = date
-        self.report = {"수익률(%)": [0.0], "누적수익률(%)": [0.0], "총자산(원)": [self._initial_cash],
+        self.report = {"수익률(%)": [0.0], "누적수익률(%)": [0.0], "총자산(원)": [self._initial_cash], "현금자산": [self._initial_cash], "현물자산": [0],
                        "CAGR(%)": [0.0], "일평균수익률(%)": [0.0], "MDD": [0.0], "최대수익률(%)": [0], "날짜": [self._date]}
 
     def _update_report(self):
@@ -120,7 +123,7 @@ class Agent:
         DD = (누적수익률 - 최대수익률) / (최대수익률 + 100) * 100
         MDD = min(DD, np.min(self.report["MDD"]))
 
-        레포트_당일 = {"수익률(%)": 당일수익률, "누적수익률(%)": 누적수익률, "총자산(원)": 총자산,
+        레포트_당일 = {"수익률(%)": 당일수익률, "누적수익률(%)": 누적수익률, "총자산(원)": 총자산, "현금자산": self.cash, "현물자산": self.total_balance,
                   "CAGR(%)": CAGR, "일평균수익률(%)": 일평균수익률, "MDD": MDD, "최대수익률(%)": 최대수익률, "날짜": self._date}
 
         for field in self.report.keys():
