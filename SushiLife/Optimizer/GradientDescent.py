@@ -36,8 +36,10 @@ class GradientDescent:
             else:
                 list_y = np.array(self._pool.map(self.eval_func, list_x)).reshape(-1)
 
-            val_now = float(list_y[1:])  # 현재 지점에서 value
+            val_now = float(list_y[0])  # 현재 지점에서 value
             print(self.point, val_now)
+
+            list_y = list_y[1:]
 
             # stepping
             gradient = (list_y[0::2] - list_y[1::2]) / (2 * self.lr)
