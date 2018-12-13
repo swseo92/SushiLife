@@ -72,6 +72,7 @@ class DataAsset:
 
         self.dates, self.codes, self.fields = np.array(axis[0]), np.array(axis[1]), np.array(axis[2])
         self.array = array
+        self._idx_sync = np.arange(len(self.codes))
 
         # 해당 코드 및 필드의 index를 빠르게 찾기위해 dictionary를 사용
         self.code2idx = dict()
@@ -82,11 +83,18 @@ class DataAsset:
         for i in range(len(self.fields)):
             self.field2idx[self.fields[i]] = i
 
-
         self._chunks = chunks
         self._dates_chunk = []
 
         self._date = None
+
+    def set_sync(self, idx):
+        self._idx_sync = self._idx_sync[idx]
+        self.codes = self.codes[idx]
+
+        self.code2idx = dict()
+        for i in range(len(self.codes)):
+            self.code2idx[self.codes[i]] = i
 
     def get_info(self, date, num=1, codes=None, fields=None):
         """
@@ -118,7 +126,7 @@ class DataAsset:
         # 현재 날짜에 인접한 날짜의 array들을 미리 메모리에 읽어 효율을 높인다.
         idx_date = list(self.dates).index(self._date)
         self._dates_chunk = list(self.dates)[max(0, idx_date - self._chunks):idx_date + self._chunks]
-        self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks].compute()
+        self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks, self._idx_sync].compute()
 
     def update_date(self, date):
         self._date = date

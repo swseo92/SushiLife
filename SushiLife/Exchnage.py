@@ -92,18 +92,15 @@ class Exchange:
 
     def set_DataAsset(self, data_asset):
         self._DataAsset = data_asset
-        self.codes = data_asset.codes
-        self.code2idx = data_asset.code2idx
-        self.field2idx = data_asset.field2idx
 
     def get_assets_info(self, codes=None, fields=None):
         array = self._OCLHVVM[:]
 
         if codes is not None:
-            idx_codes = [self.code2idx[code] for code in codes]
+            idx_codes = [self._DataAsset.code2idx[code] for code in codes]
             array = array[idx_codes, :]
         if fields is not None:
-            idx_fields = [self.field2idx[field] for field in fields]
+            idx_fields = [self._DataAsset.field2idx[field] for field in fields]
             array = array[:, idx_fields]
 
         return array

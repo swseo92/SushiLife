@@ -62,6 +62,8 @@ class Updater:
         self._init = True
         self._date = self._date_start
 
+        sync_DataAssets(self.list_data_instance)
+
         while self._date not in self._list_date:
             self._date = self._date + pd.Timedelta(days=1)
 
@@ -69,3 +71,19 @@ class Updater:
 
         for instance in list_initialization4update:
             instance.init(self._date)
+
+
+def sync_DataAsset(DataAsset1, DataAsset2):
+    _, idx_sync1, idx_sync2 = np.intersect1d(DataAsset1.codes, DataAsset2.codes, return_indices=True)
+    DataAsset1.set_sync(idx_sync1)
+    DataAsset2.set_sync(idx_sync2)
+
+
+def sync_DataAssets(list_DataAsset):
+    DataAsset0 = list_DataAsset[0]
+    list_DataAsset = list_DataAsset[1:]
+
+    for i in range(len(list_DataAsset)):
+        sync_DataAsset(DataAsset0, list_DataAsset[i])
+        for j in range(i):
+            sync_DataAsset(DataAsset0, list_DataAsset[j])
