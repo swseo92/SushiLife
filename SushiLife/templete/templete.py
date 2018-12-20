@@ -4,7 +4,7 @@ import h5py
 
 from SushiLife import *
 
-f = h5py.File("../data/stock_info.hdf5", "r")
+f = h5py.File("../../../../data/stock_info.hdf5", "r")
 array_stock, axis_stock = load_data(f, "stock", chunks=5, in_memory=False)
 array_value, axis_value = load_data(f, "value", chunks=5, in_memory=False)
 
@@ -81,7 +81,7 @@ while updater._date != updater._list_date[-1]:
             agent.buy("stock", 종목코드, 현재가[i], 매수수량, 주문종류="조건부지정가")
         i += 1
 
-    for i in range(21):
-        if updater._date == updater._list_date[-1]:
-            break
-        updater.update()
+    # for i in range(21):
+    #     if updater._date == updater._list_date[-1]:
+    #         break
+    updater.update()

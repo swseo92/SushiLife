@@ -4,7 +4,7 @@ import pickle
 import dask.array as da
 
 
-def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):
+def make_data(filename, name, data_df, fields=None, dtype=None, dates=None, ):
     """
     sql에서 읽은 dataframe을 (날짜, 종목코드, 필드)로 구성된 3-dimensional array로 변환한다.
     :param data_df: pandas.dataframe, 종목코드와 날짜를 각각 table과 index로 갖는 pandas dataframe
@@ -25,6 +25,7 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):
         fields = ["현재가", "시가", "고가", "저가", "대비", "거래량(주)", "거래대금(원)", "상장시가총액(원)", "시장구분"]
 
     for code in codes:
+        print(code)
         dummy = data_df[code][fields].reindex(dates).fillna(np.nan)
         list_data.append(np.array(dummy).reshape(len(dates), 1, -1))
 
@@ -41,13 +42,10 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None):
 
     f = h5py.File(filename, "a")
     try:
-        f.create_dataset(name, data=array)
+        f.create_dataset(name, data=array, maxshape=(None, None, None))
     except:
-        del f[name]
-        f.close()
-
-        f = h5py.File(filename, "a")
-        f.create_dataset(name, data=array)
+        f[dtype].resize((array.shape[0], array.shape[1], array.shape[2]))  # field를 2개 추가하도록 resize한다.
+        f[dtype][:] = array
     f.close()
 
     with open("%s-%s.axis" % (filename, name), "wb") as f:

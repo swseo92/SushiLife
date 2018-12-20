@@ -52,6 +52,9 @@ class Updater:
         self._date = self._date + pd.Timedelta(days=1)
 
         while self._date not in self._list_date:
+            if self._date > self._list_date[-1]:
+                break
+
             self._date = self._date + pd.Timedelta(days=1)
 
         list_instance4update = self.list_data_instance + self.list_agent_instance + self.list_exchange_instance
