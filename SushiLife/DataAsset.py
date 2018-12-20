@@ -44,8 +44,8 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None, ):
     try:
         f.create_dataset(name, data=array, maxshape=(None, None, None))
     except:
-        f[dtype].resize((array.shape[0], array.shape[1], array.shape[2]))  # field를 2개 추가하도록 resize한다.
-        f[dtype][:] = array
+        f[name].resize((array.shape[0], array.shape[1], array.shape[2]))  # field를 2개 추가하도록 resize한다.
+        f[name][:] = array
     f.close()
 
     with open("%s-%s.axis" % (filename, name), "wb") as f:
