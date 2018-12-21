@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 from SushiLife.Statistics.stat import *
+import visdom
+import plotly
+import plotly.graph_objs as go
 
 class Agent:
     def __init__(self, initial_cash, 레버리지=1, 출력=True):
@@ -146,7 +149,6 @@ class Agent:
 
         rolling_cagr = cal_rolling_GR(레포트["누적수익률(%)"], 250)
         rolling_cmgr = cal_rolling_GR(레포트["누적수익률(%)"], 20)
-        rolling_cwgr = cal_rolling_GR(레포트["누적수익률(%)"], 5)
 
         annual_winning_rate = cal_winning_rate(레포트["누적수익률(%)"], 250)
         monthly_winning_rate = cal_winning_rate(레포트["누적수익률(%)"], 20)
@@ -155,11 +157,6 @@ class Agent:
         annual_SR = cal_shape_ratio(레포트["누적수익률(%)"], 250)
         monthly_SR = cal_shape_ratio(레포트["누적수익률(%)"], 20)
         weekly_SR = cal_shape_ratio(레포트["누적수익률(%)"], 5)
-
-        plot_date(레포트["날짜"], np.log10(레포트["누적수익률(%)"] + 100), ylabel="누적수익률(%)")
-        plot_date(레포트["날짜"], rolling_cagr, ylabel="Rolling CAGR(%)")
-        plot_date(레포트["날짜"], rolling_cmgr, ylabel="Rolling CMGR(%)")
-        plot_date(레포트["날짜"], 레포트["DD"], ylabel="Drawdown(%)")
 
         visdom.Visdom().text(
             '누적수익률: %.2f' % 레포트["누적수익률(%)"].iat[-1] + '% <br>'
@@ -176,6 +173,19 @@ class Agent:
             + '- Weekly Sharpe Ratio: %.2f <br>' % weekly_SR
         )
 
+        data = dict(x=레포트["날짜"], y=np.log10(100+레포트["누적수익률(%)"]), xaxis='x', yaxis='y3', showlegend=False)
+        data2 = dict(x=레포트["날짜"], y=레포트["DD"], xaxis='x', yaxis='y', showlegend=False)
+        data3 = dict(x=레포트["날짜"], y=rolling_cagr, xaxis='x3', yaxis='y3', showlegend=False)
+        data4 = dict(x=레포트["날짜"], y=rolling_cmgr, xaxis='x3', yaxis='y4', showlegend=False)
+
+        fig = plotly.tools.make_subplots(rows=2, cols=2, shared_xaxes=True,
+                                  subplot_titles=('누적수익률(%)', 'Rolling CAGR(%)', 'DrawDown', 'Rolling CMGR(%)'))
+        fig.append_trace(data, 1, 1)
+        fig.append_trace(data2, 2, 1)
+        fig.append_trace(data3, 1, 2)
+        fig.append_trace(data4, 2, 2)
+
+        visdom.Visdom().plotlyplot(fig)
+
         print("http://localhost:8097/#")
         return 레포트
-

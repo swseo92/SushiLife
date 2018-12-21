@@ -1,5 +1,5 @@
 import numpy as np
-
+from SushiLife.Plot.Chart import *
 
 class Exchange:
     def __init__(self):
@@ -115,15 +115,18 @@ class Exchange:
     def _get_OCLHVV(self):
         self._OCLHVVM = self._DataAsset.get_info(self._date, num=1, fields=self.fields).reshape(-1, 8)
 
+    def chart(self, 종목코드, num=None):
+        if num is None:
+            num = self._DataAsset._chunks
 
-#     def get_assets_info(self, codes, fields=None):
+        data = self._DataAsset.get_info(self._date, num=num, fields=["현재가", "시가", "고가", "저가", "거래대금(원)"],
+                                   codes=[종목코드])
 
-#         if fields is None:
-#             array = self._DataAsset.get_info(self._date, num=1, codes=codes, fields=self.fields).reshape(-1, 8)
-#         else:
-#             array = self._DataAsset.get_info(self._date, num=1, codes=codes, fields=fields).reshape(-1, 8)
+        chart = Chart()
+        chart.make_chart(data)
 
-#         return array
+        return chart
+
 
 def cal_price_tick_unit(price, market_type):
     price = np.array(price)

@@ -5,7 +5,7 @@ from Cython.Build import cythonize
 setup(
     name='SushiLife',
     version='1.1',
-    packages=['SushiLife', 'SushiLife.data', "SushiLife.Optimizer", "SushiLife.Statistics"],
+    packages=['SushiLife', 'SushiLife.data', "SushiLife.Optimizer", "SushiLife.Statistics", "SushiLife.Plot"],
     url='https://github.com/swseo92/SushiLife',
     license='',
     author='swseo92',
