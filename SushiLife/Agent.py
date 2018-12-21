@@ -144,7 +144,7 @@ class Agent:
                   "--------------------------------------------------\n",
                   "장시작 : ", self._date, )
 
-    def stat(self):
+    def stat(self, Strategy_name, height=900, width=1400):
         레포트 = pd.DataFrame(self.report)
 
         rolling_cagr = cal_rolling_GR(레포트["누적수익률(%)"], 250)
@@ -159,7 +159,9 @@ class Agent:
         weekly_SR = cal_shape_ratio(레포트["누적수익률(%)"], 5)
 
         visdom.Visdom().text(
-            '누적수익률: %.2f' % 레포트["누적수익률(%)"].iat[-1] + '% <br>'
+            "--- " + Strategy_name + " ---" + '<br>'
+            + '<br>'
+            + '누적수익률: %.2f' % 레포트["누적수익률(%)"].iat[-1] + '% <br>'
             + '일평균수익률: %.2f' % 레포트["일평균수익률(%)"].iat[-1] + '% <br>'
             + 'CAGR: %.2f' % 레포트["CAGR(%)"].iat[-1] + '% <br>'
             + 'MDD: %.2f' % 레포트["MDD"].iat[-1] + '% <br>'
@@ -173,19 +175,24 @@ class Agent:
             + '- Weekly Sharpe Ratio: %.2f <br>' % weekly_SR
         )
 
-        data = dict(x=레포트["날짜"], y=np.log10(100+레포트["누적수익률(%)"]), xaxis='x', yaxis='y3', showlegend=False)
-        data2 = dict(x=레포트["날짜"], y=레포트["DD"], xaxis='x', yaxis='y', showlegend=False)
-        data3 = dict(x=레포트["날짜"], y=rolling_cagr, xaxis='x3', yaxis='y3', showlegend=False)
-        data4 = dict(x=레포트["날짜"], y=rolling_cmgr, xaxis='x3', yaxis='y4', showlegend=False)
+        trace1 = dict(x=레포트["날짜"], y=(100 + 레포트["누적수익률(%)"]), xaxis='x', yaxis='y', showlegend=False)
+        trace2 = dict(x=레포트["날짜"], y=레포트["DD"], xaxis='x', yaxis='y2', showlegend=False)
 
-        fig = plotly.tools.make_subplots(rows=2, cols=2, shared_xaxes=True,
-                                  subplot_titles=('누적수익률(%)', 'Rolling CAGR(%)', 'DrawDown', 'Rolling CMGR(%)'))
-        fig.append_trace(data, 1, 1)
-        fig.append_trace(data2, 2, 1)
-        fig.append_trace(data3, 1, 2)
-        fig.append_trace(data4, 2, 2)
+        trace3 = dict(x=레포트["날짜"], y=rolling_cagr, xaxis='x2', yaxis='y3', showlegend=False)
+        trace4 = dict(x=레포트["날짜"], y=rolling_cmgr, xaxis='x2', yaxis='y4', showlegend=False)
 
+        data = [trace1, trace2, trace3, trace4]
+        layout = go.Layout(
+            title=Strategy_name, height=height, width=width,
+            yaxis=dict(type='log', domain=[0.3, 1], title="누적수익률(%)"),
+            yaxis2=dict(domain=[0, 0.3], title="Drawdown(%)"),
+            xaxis=dict(domain=[0, 0.6], anchor="y2"),
+
+            xaxis2=dict(domain=[0.75, 1], anchor="y4"),
+            yaxis3=dict(domain=[0.5, 1], anchor="x2", title="Rolling CAGR(%)"),
+            yaxis4=dict(domain=[0, 0.5], anchor="x2", title="Rolling CMGR(%)")
+        )
+        fig = go.Figure(data=data, layout=layout)
         visdom.Visdom().plotlyplot(fig)
-
         print("http://localhost:8097/#")
         return 레포트
