@@ -1,5 +1,6 @@
 import numpy as np
-
+import pandas as pd
+from SushiLife.Statistics.stat import *
 
 class Agent:
     def __init__(self, initial_cash, 레버리지=1, 출력=True):
@@ -108,7 +109,7 @@ class Agent:
     def init(self, date):
         self._date = date
         self.report = {"수익률(%)": [0.0], "누적수익률(%)": [0.0], "총자산(원)": [self._initial_cash], "현금자산": [self._initial_cash], "현물자산": [0],
-                       "CAGR(%)": [0.0], "일평균수익률(%)": [0.0], "MDD": [0.0], "최대수익률(%)": [0], "날짜": [self._date]}
+                       "CAGR(%)": [0.0], "일평균수익률(%)": [0.0], "MDD": [0.0], "DD": [0.0], "최대수익률(%)": [0], "날짜": [self._date]}
 
     def _update_report(self):
         당일수익률 = (self.total_balance - self.report["총자산(원)"][-1]) / self.report["총자산(원)"][-1] * 100
@@ -124,7 +125,7 @@ class Agent:
         MDD = min(DD, np.min(self.report["MDD"]))
 
         레포트_당일 = {"수익률(%)": 당일수익률, "누적수익률(%)": 누적수익률, "총자산(원)": 총자산, "현금자산": self.cash, "현물자산": self.total_balance,
-                  "CAGR(%)": CAGR, "일평균수익률(%)": 일평균수익률, "MDD": MDD, "최대수익률(%)": 최대수익률, "날짜": self._date}
+                  "CAGR(%)": CAGR, "일평균수익률(%)": 일평균수익률, "MDD": MDD, "DD": DD, "최대수익률(%)": 최대수익률, "날짜": self._date}
 
         for field in self.report.keys():
             self.report[field].append(레포트_당일[field])
@@ -135,6 +136,46 @@ class Agent:
                   "누적수익률(%) : ", 누적수익률, "\n",
                   "CAGR(%)", CAGR, "\n",
                   "MDD : ", MDD, "\n",
+                  "DD : ", DD, "\n",
                   "총자산(원) : ", 총자산, "\n",
                   "--------------------------------------------------\n",
                   "장시작 : ", self._date, )
+
+    def stat(self):
+        레포트 = pd.DataFrame(self.report)
+
+        rolling_cagr = cal_rolling_GR(레포트["누적수익률(%)"], 250)
+        rolling_cmgr = cal_rolling_GR(레포트["누적수익률(%)"], 20)
+        rolling_cwgr = cal_rolling_GR(레포트["누적수익률(%)"], 5)
+
+        annual_winning_rate = cal_winning_rate(레포트["누적수익률(%)"], 250)
+        monthly_winning_rate = cal_winning_rate(레포트["누적수익률(%)"], 20)
+        weekly_winning_rate = cal_winning_rate(레포트["누적수익률(%)"], 5)
+
+        annual_SR = cal_shape_ratio(레포트["누적수익률(%)"], 250)
+        monthly_SR = cal_shape_ratio(레포트["누적수익률(%)"], 20)
+        weekly_SR = cal_shape_ratio(레포트["누적수익률(%)"], 5)
+
+        plot_date(레포트["날짜"], np.log10(레포트["누적수익률(%)"] + 100), ylabel="누적수익률(%)")
+        plot_date(레포트["날짜"], rolling_cagr, ylabel="Rolling CAGR(%)")
+        plot_date(레포트["날짜"], rolling_cmgr, ylabel="Rolling CMGR(%)")
+        plot_date(레포트["날짜"], 레포트["DD"], ylabel="Drawdown(%)")
+
+        visdom.Visdom().text(
+            '누적수익률: %.2f' % 레포트["누적수익률(%)"].iat[-1] + '% <br>'
+            + '일평균수익률: %.2f' % 레포트["일평균수익률(%)"].iat[-1] + '% <br>'
+            + 'CAGR: %.2f' % 레포트["CAGR(%)"].iat[-1] + '% <br>'
+            + 'MDD: %.2f' % 레포트["MDD"].iat[-1] + '% <br>'
+            + '<br>'
+            + '- Annual Winning Rate: %.2f <br>' % annual_winning_rate
+            + '- Monthly Winning Rate: %.2f <br>' % monthly_winning_rate
+            + '- Weekly Winning Rate: %.2f <br>' % weekly_winning_rate
+            + "<br>"
+            + '- Annual Sharpe Ratio: %.2f <br>' % annual_SR
+            + '- Monthly Sharpe Ratio: %.2f <br>' % monthly_SR
+            + '- Weekly Sharpe Ratio: %.2f <br>' % weekly_SR
+        )
+
+        print("http://localhost:8097/#")
+        return 레포트
+
