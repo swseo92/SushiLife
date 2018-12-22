@@ -1,5 +1,6 @@
 import numpy as np
-from SushiLife.Plot.Chart import *
+# from SushiLife.Plot.Chart import *
+from Plot.Chart import *
 
 class Exchange:
     def __init__(self):
@@ -115,15 +116,14 @@ class Exchange:
     def _get_OCLHVV(self):
         self._OCLHVVM = self._DataAsset.get_info(self._date, num=1, fields=self.fields).reshape(-1, 8)
 
-    def chart(self, 종목코드, num=None):
-        if num is None:
-            num = self._DataAsset._chunks
-
+    def chart(self, 종목코드, num=250):
         data = self._DataAsset.get_info(self._date, num=num, fields=["현재가", "시가", "고가", "저가", "거래대금(원)"],
-                                   codes=[종목코드])
+                                   codes=[종목코드])[:, 0, :]
 
+        idx_dates = self._DataAsset.date2idx[self._date]
+        list_date = self._DataAsset.dates[idx_dates-num+1:idx_dates+1]
         chart = Chart()
-        chart.make_chart(data)
+        chart.make_chart(data, list_date)
 
         return chart
 

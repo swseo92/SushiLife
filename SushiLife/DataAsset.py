@@ -73,6 +73,10 @@ class DataAsset:
         self._idx_sync = np.arange(len(self.codes))
 
         # 해당 코드 및 필드의 index를 빠르게 찾기위해 dictionary를 사용
+        self.date2idx = dict()
+        for i in range(len(self.dates)):
+            self.date2idx[self.dates[i]] = i
+
         self.code2idx = dict()
         for i in range(len(self.codes)):
             self.code2idx[self.codes[i]] = i

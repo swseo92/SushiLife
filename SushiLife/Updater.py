@@ -5,6 +5,7 @@ import pandas as pd
 class Updater:
     def __init__(self, date, list_date):
         self._list_date = list_date
+        self._idx_date = None
 
         self._date = date
         self._date_start = date
@@ -49,13 +50,10 @@ class Updater:
             # init을 하지 않은경우 백테스트가 실행되지 않는다.
             raise Exception
 
-        self._date = self._date + pd.Timedelta(days=1)
-
-        while self._date not in self._list_date:
-            if self._date > self._list_date[-1]:
-                break
-
-            self._date = self._date + pd.Timedelta(days=1)
+        self._idx_date += 1
+        self._date = self._list_date[self._idx_date]
+        if self._idx_date > len(self._list_date):
+            raise Exception
 
         list_instance4update = self.list_data_instance + self.list_agent_instance + self.list_exchange_instance
         for instance in list_instance4update:
@@ -70,6 +68,7 @@ class Updater:
         while self._date not in self._list_date:
             self._date = self._date + pd.Timedelta(days=1)
 
+        self._idx_date = list(self._list_date).index(self._date)
         list_initialization4update = self.list_data_instance + self.list_exchange_instance + self.list_agent_instance
 
         for instance in list_initialization4update:
