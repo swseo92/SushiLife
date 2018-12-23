@@ -1,6 +1,5 @@
 import numpy as np
-# from SushiLife.Plot.Chart import *
-from Plot.Chart import *
+from SushiLife.Plot.Chart import *
 
 class Exchange:
     def __init__(self):

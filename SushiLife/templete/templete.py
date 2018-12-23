@@ -5,24 +5,24 @@ import h5py
 from SushiLife import *
 
 f = h5py.File("../../../../data/stock_info.hdf5", "r")
-array_stock, axis_stock = load_data(f, "stock", chunks=5, in_memory=False)
-array_value, axis_value = load_data(f, "value", chunks=5, in_memory=False)
+array_stock, axis_stock = load_data(f, "stock", chunks=5)
+array_value, axis_value = load_data(f, "value", chunks=5)
 
-data_stock = DataAsset(array_stock, axis_stock, chunks=5)
-data_value = DataAsset(array_value, axis_value, chunks=5)
+data_stock = DataAsset(array_stock, axis_stock, chunks=5, in_memory=False)
+data_value = DataAsset(array_value, axis_value, chunks=5, in_memory=False)
 
-updater = Updater(pd.Timestamp(2002, 6, 15), data_stock.dates)
+updater = Updater(pd.Timestamp(2003, 1, 1), data_stock.dates)
 
 # 거래소 생성
 exchange_stock = Exchange()
-exchange_stock.set_DataAsset(data_stock)
+exchange_stock.set_DataAsset(data_stock)  # 주가 데이터를 거래소에 등록한다.
 
 # 주식 계좌 생성
 stock_account = StockAccount(exchange_stock, 출력=False)
 
 # 거래 에이전트 생성 및 주식 계좌 등록
-agent = Agent(1e8, 출력=False)
-agent.set_account("stock", stock_account)
+agent = Agent(1e8, 출력=True)
+agent.set_account("stock", stock_account)  # 각 자산을 보관할 지갑을 생성한다.
 
 # 날짜가 변할시 업데이트 요청
 updater.set_data(data_stock)
@@ -38,6 +38,7 @@ updater.initialization()
 columns = ["상장시가총액(원)", "지배주주순이익(원)(직전4분기)", "지배주주지분(원)",
            "현금흐름(원)(직전4분기)", "매출액(원)(직전4분기)"]
 
+#  백테스트 시작
 while updater._date != updater._list_date[-1]:
     fin_stat = data_value.get_info(updater._date, num=2,
                                    fields=columns)
@@ -81,7 +82,8 @@ while updater._date != updater._list_date[-1]:
             agent.buy("stock", 종목코드, 현재가[i], 매수수량, 주문종류="조건부지정가")
         i += 1
 
-    # for i in range(21):
-    #     if updater._date == updater._list_date[-1]:
-    #         break
-    updater.update()
+    for i in range(21):
+        if updater._date == updater._list_date[-1]:
+            break
+
+stat = agent.stat("templete")

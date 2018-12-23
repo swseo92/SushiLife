@@ -41,35 +41,35 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None, ):
         array = array.astype('f')
 
     f = h5py.File(filename, "a")
-    try:
-        f.create_dataset(name, data=array, maxshape=(None, None, None))
-    except:
-        f[name].resize((array.shape[0], array.shape[1], array.shape[2]))  # field를 2개 추가하도록 resize한다.
-        f[name][:] = array
+    f.create_dataset(name, data=array)
     f.close()
 
     with open("%s-%s.axis" % (filename, name), "wb") as f:
         pickle.dump((dates, codes, fields), f)
 
 
-def load_data(file, name, chunks=5, in_memory=False):
+def load_data(file, name, chunks=5):
     with open("%s-%s.axis" % (file.filename, name), "rb") as f:
         axis = pickle.load(f)
 
     array = file[name]
-    if in_memory:
-        array = array[:]
-
     array = da.from_array(array, chunks=(chunks, len(axis[1]), len(axis[2])))
 
     return array, axis
 
 class DataAsset:
-    def __init__(self, array, axis, chunks=300):
+    def __init__(self, array, axis, chunks=300, in_memory=False):
         #         array, axis = make_data(data_df)
 
         self.dates, self.codes, self.fields = np.array(axis[0]), np.array(axis[1]), np.array(axis[2])
-        self.array = array
+
+        if in_memory:
+            self.array = array.compute()
+            self.in_memory = True
+        else:
+            self.array = array
+            self.in_memory = False
+
         self._idx_sync = np.arange(len(self.codes))
 
         # 해당 코드 및 필드의 index를 빠르게 찾기위해 dictionary를 사용
@@ -97,6 +97,9 @@ class DataAsset:
         self.code2idx = dict()
         for i in range(len(self.codes)):
             self.code2idx[self.codes[i]] = i
+
+        if self.in_memory:
+            self.array = self.array[:, self._idx_sync, :]
 
     def get_info(self, date, num=1, codes=None, fields=None):
         """
@@ -128,7 +131,10 @@ class DataAsset:
         # 현재 날짜에 인접한 날짜의 array들을 미리 메모리에 읽어 효율을 높인다.
         idx_date = list(self.dates).index(self._date)
         self._dates_chunk = list(self.dates)[max(0, idx_date - self._chunks):idx_date + self._chunks]
-        self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks, self._idx_sync].compute()
+        if self.in_memory:
+            self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks]
+        else:
+            self._array_chunk = self.array[max(0, idx_date - self._chunks):idx_date + self._chunks, self._idx_sync].compute()
 
     def update_date(self, date):
         self._date = date
