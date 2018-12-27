@@ -29,6 +29,11 @@ class Agent:
                               "판매이름": [], "판매가격": [], "판매수량": [], "판매종류": [], "판매시간": []}
 
     def buy(self, name_account, name, 주문가격, 주문수량, 주문종류="limit", 주문시간="장중"):
+        if 주문수량 < 0:
+            raise Exception
+
+        주문수량 = int(주문수량)
+
         self._basket[name_account]["구매이름"].append(name)
         self._basket[name_account]["구매가격"].append(주문가격)
         self._basket[name_account]["구매수량"].append(주문수량)
@@ -36,6 +41,11 @@ class Agent:
         self._basket[name_account]["구매시간"].append(주문시간)
 
     def sell(self, name_account, name, 주문가격, 주문수량, 주문종류="limit", 주문시간="장중"):
+        if 주문수량 < 0:
+            raise Exception
+
+        주문수량 = int(주문수량)
+
         self._basket[name_account]["판매이름"].append(name)
         self._basket[name_account]["판매가격"].append(주문가격)
         self._basket[name_account]["판매수량"].append(주문수량)
