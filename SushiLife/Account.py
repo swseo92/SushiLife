@@ -48,15 +48,19 @@ class AssetAccount(dict):
                                      * self[name]["보유수량"]) / (수량 + self[name]["보유수량"])
                 self[name]["보유수량"] += 수량
 
+        return cash
+
     def _remove_assets(self, cash, names, 주문가격, 주문수량):
 
         for i in range(len(names)):
-            cash += 주문가격 * 주문수량
+            cash += 주문가격[i] * 주문수량[i] * self._TC
             self[names[i]]["보유수량"] -= 주문수량[i]
 
         for name in np.unique(names):
             if self[name]["보유수량"] == 0:
                 del self[name]
+
+        return cash
 
     def get_total_balance(self):
         return self._total_balance
@@ -104,10 +108,10 @@ class StockAccount(AssetAccount):
         체결가, 현재가 = 체결가[체결], 현재가[체결]
         주문수량 = np.array(주문수량)[체결]
 
-        self._add_assets(cash, names[주문수량 > 0], 체결가[주문수량 > 0], 현재가[주문수량 > 0], 주문수량[주문수량 > 0])
+        cash = self._add_assets(cash, names[주문수량 > 0], 체결가[주문수량 > 0], 현재가[주문수량 > 0], 주문수량[주문수량 > 0])
 
-        거래대금 = np.sum(체결가 * 주문수량)
-        return 거래대금
+        # 거래대금 = np.sum(체결가 * 주문수량)
+        return cash
 
     def sell(self, cash, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
         체결가 = self._exchange.sell(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
@@ -129,10 +133,10 @@ class StockAccount(AssetAccount):
         names = np.array(names)[체결]
         체결가 = 체결가[체결]
         주문수량 = np.array(주문수량)[체결]
-        self._remove_assets(names[주문수량 > 0], 체결가[주문수량 > 0], 주문수량[주문수량 > 0])
+        cash = self._remove_assets(cash, names[주문수량 > 0], 체결가[주문수량 > 0], 주문수량[주문수량 > 0])
 
-        거래대금 = np.sum(체결가 * 주문수량) * self._TC
-        return 거래대금
+        # 거래대금 = np.sum(체결가 * 주문수량) * self._TC
+        return cash
 
     def _get_current_price(self):
         names = list(self.keys())
