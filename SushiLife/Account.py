@@ -23,17 +23,19 @@ class AssetAccount(dict):
         self._tax, self._fee, self._slippage = cost
         self._TC = 1-(self._tax + self._fee + self._slippage) / 100
 
-    def buy(self, names, 주문가격, 주문수량):
+    def buy(self, cash, names, 주문가격, 주문수량):
         pass
 
-    def sell(self, names, 주문가격, 주문수량):
+    def sell(self, cash, names, 주문가격, 주문수량):
         pass
 
-    def _add_assets(self, names, 주문가격, 현재가, 주문수량):
+    def _add_assets(self, cash, names, 주문가격, 현재가, 주문수량):
         for i in range(len(names)):
             name = names[i]
             수량 = 주문수량[i]
             가격 = 주문가격[i]
+
+            cash -= 가격 * 수량
 
             if name not in self.keys():
                 self[name] = {"현재가": 현재가[i], "평단가": 가격, "보유수량": 수량}
@@ -43,8 +45,10 @@ class AssetAccount(dict):
                                      * self[name]["보유수량"]) / (수량 + self[name]["보유수량"])
                 self[name]["보유수량"] += 수량
 
-    def _remove_assets(self, names, 주문가격, 주문수량):
+    def _remove_assets(self, cash, names, 주문가격, 주문수량):
+
         for i in range(len(names)):
+            cash += 주문가격 * 주문수량
             self[names[i]]["보유수량"] -= 주문수량[i]
 
         for name in np.unique(names):
@@ -82,7 +86,7 @@ class StockAccount(AssetAccount):
     def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True):
         AssetAccount.__init__(self, exchange, cost=cost, 출력=출력)
 
-    def buy(self, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
+    def buy(self, cash, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
         체결가, 현재가 = self._exchange.buy(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
 
         체결 = ~np.isnan(체결가)
@@ -97,12 +101,12 @@ class StockAccount(AssetAccount):
         체결가, 현재가 = 체결가[체결], 현재가[체결]
         주문수량 = np.array(주문수량)[체결]
 
-        self._add_assets(names[주문수량 > 0], 체결가[주문수량 > 0], 현재가[주문수량 > 0], 주문수량[주문수량 > 0])
+        self._add_assets(cash, names[주문수량 > 0], 체결가[주문수량 > 0], 현재가[주문수량 > 0], 주문수량[주문수량 > 0])
 
         거래대금 = np.sum(체결가 * 주문수량)
         return 거래대금
 
-    def sell(self, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
+    def sell(self, cash, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
         체결가 = self._exchange.sell(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
 
         체결 = ~np.isnan(체결가)

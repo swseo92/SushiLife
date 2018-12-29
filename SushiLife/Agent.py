@@ -91,8 +91,8 @@ class Agent:
             if 주문시간 is not None:
                 주문시간 = 주문시간[:idx]
 
-        cash_consumed = self.accounts[name_account].buy(names, 주문가격, 주문수량, 주문종류=주문종류, 주문시간=주문시간)
-        self.cash -= cash_consumed
+        cash_consumed = self.accounts[name_account].buy(self.cash, names, 주문가격, 주문수량, 주문종류=주문종류, 주문시간=주문시간)
+        # self.cash -= cash_consumed
 
         return True
 
@@ -102,8 +102,8 @@ class Agent:
         주문가격 = np.array(주문가격)
         주문수량 = np.array(주문수량)
 
-        cash_earned = self.accounts[name_account].sell(names, 주문가격, 주문수량, **kwds)
-        self.cash += cash_earned
+        cash_earned = self.accounts[name_account].sell(self.cash, names, 주문가격, 주문수량, **kwds)
+        # self.cash += cash_earned
 
 
     def update_date(self, date):
