@@ -35,6 +35,9 @@ class AssetAccount(dict):
             수량 = 주문수량[i]
             가격 = 주문가격[i]
 
+            if cash < 가격 * 수량:
+                break
+
             cash -= 가격 * 수량
 
             if name not in self.keys():
