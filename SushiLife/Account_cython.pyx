@@ -41,6 +41,6 @@ def apply(account, names, current_price):
             account[name]["현재가"] = price
 
             if account[name]["보유수량"] == 0:
-                del account[name]["보유수량"]
+                del account[name]
         i += 1
     return account, total_balance
