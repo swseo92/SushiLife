@@ -39,5 +39,8 @@ def apply(account, names, current_price):
                 account[name]["보유수량"] = max(1, np.floor(shares / adjust_coeff))
 
             account[name]["현재가"] = price
+
+            if account[name]["보유수량"] == 0:
+                del account[name]["보유수량"]
         i += 1
     return account, total_balance
