@@ -122,6 +122,17 @@ class DataAsset:
         if self.in_memory:
             self.array = self.array[:, self._idx_sync, :]
 
+    def resampling(self, idx):
+        self._idx_sync = self._idx_sync[idx]  # 이 indices를 통해 종목코드 순서를 맞춘다.
+        self.codes = self.codes[idx]
+
+        self.code2idx = dict()
+        for i in range(len(self.codes)):
+            self.code2idx[self.codes[i]] = i
+
+        if self.in_memory:
+            self.array = self.array[:, self._idx_sync, :]
+
     def get_info(self, date, num=1, codes=None, fields=None):
         """
 

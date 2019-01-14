@@ -40,10 +40,10 @@ columns = ["상장시가총액(원)", "지배주주순이익(원)(직전4분기)
 
 #  백테스트 시작
 while updater._date != updater._list_date[-1]:
-    fin_stat = data_value.get_info(updater._date, num=2,
+    fin_stat = data_value.get_info(updater._date, num=1,
                                    fields=columns)
 
-    df = pd.DataFrame(fin_stat[-2], index=data_value.codes, columns=columns)
+    df = pd.DataFrame(fin_stat, index=data_value.codes, columns=columns)
     df = df[~np.isnan(df["상장시가총액(원)"])]  # 상장종목 고려
     df = df.sort_values(by=['상장시가총액(원)']).iloc[:int(len(df.index) * 0.3)]  # 소형주
 
@@ -61,6 +61,8 @@ while updater._date != updater._list_date[-1]:
     df["Rank"] = (df["PER"].rank() + df["PBR"].rank() + df["PCR"].rank() + df["PSR"].rank()).rank()
 
     df = df[df["Rank"] < 51]
+
+    updater.update()
 
     # 매도
     매도종목 = agent.accounts["stock"].keys()
@@ -82,8 +84,7 @@ while updater._date != updater._list_date[-1]:
             agent.buy("stock", 종목코드, 현재가[i], 매수수량, 주문종류="조건부지정가")
         i += 1
 
-    for i in range(21):
+    for i in range(20):
+        updater.update()
         if updater._date == updater._list_date[-1]:
             break
-
-stat = agent.stat("templete")

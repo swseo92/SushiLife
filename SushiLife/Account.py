@@ -172,7 +172,7 @@ class StockAccount(AssetAccount):
 
         names = np.array(names)[체결]
         체결가, 현재가 = 체결가[체결], 현재가[체결]
-        주문수량 = np.array(주문수량)[체결]
+        주문수량 = np.array(주문수량, dtype=np.int64)[체결]
 
         cash = self._add_assets(cash, names, 체결가, 현재가, 주문수량)
 
@@ -198,7 +198,7 @@ class StockAccount(AssetAccount):
 
         names = np.array(names)[체결]
         체결가 = 체결가[체결]
-        주문수량 = np.array(주문수량)[체결]
+        주문수량 = np.array(주문수량, dtype=np.int64)[체결]
         cash = self._remove_assets(cash, names, 체결가, 주문수량)
 
         # 거래대금 = np.sum(체결가 * 주문수량) * self._TC

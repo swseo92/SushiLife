@@ -3,9 +3,11 @@ import pandas as pd
 
 
 class Updater:
-    def __init__(self, date, list_date):
+    def __init__(self, date, list_date, resampling=False):
         self._list_date = list_date
         self._idx_date = None
+
+        self._resampling=resampling
 
         self._date = date
         self._date_start = date
@@ -64,6 +66,11 @@ class Updater:
         self._date = self._date_start
 
         sync_DataAssets(self.list_data_instance)
+        if self._resampling:
+            num = len(self.list_data_instance[0].codes)
+            idx_resample = np.random.choice(num, size=int(num * self._resampling), replace=False)
+            for data_asset in self.list_data_instance:
+                data_asset.resampling(idx_resample)
 
         while self._date not in self._list_date:
             self._date = self._date + pd.Timedelta(days=1)
