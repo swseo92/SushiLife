@@ -78,9 +78,9 @@ class AssetAccount(dict):
             수량 = 주문수량[i]
             가격 = 주문가격[i]
 
-            if cash < 가격 * 수량:
-                # 만일 현금이 부족할 경우 자산의 매수를 그만둔다.
-                break
+            # if cash < 가격 * 수량:
+            #     # 만일 현금이 부족할 경우 자산의 매수를 그만둔다.
+            #     break
 
             cash -= 가격 * 수량
 
