@@ -31,6 +31,8 @@ class Chart(visdom.Visdom):
 
         fig['layout']['yaxis'] = dict(domain=[0.2, 1], showticklabels=False)
         fig['layout']['yaxis2'] = dict(domain=[0, 0.2])
+        fig['layout']['xaxis'] = {'type': 'category'}
+        #print(fig)
 
         self.fig = fig
 
