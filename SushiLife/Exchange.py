@@ -114,7 +114,7 @@ class Exchange:
         self.update_date(date)
 
     def _get_OCLHVV(self):
-        self._OCLHVVM = self._DataAsset.get_info(self._date, num=1, fields=self.fields).reshape(-1, 8)
+        self._OCLHVVM = self._DataAsset.get_info(self._date, num=1, fields=self.fields).reshape(-1, len(self.fields))
 
     def chart(self, 종목코드, num=250):
         data = self._DataAsset.get_info(self._date, num=num, fields=["현재가", "시가", "고가", "저가", "거래대금(원)"],
