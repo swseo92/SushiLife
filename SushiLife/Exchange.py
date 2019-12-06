@@ -1,6 +1,7 @@
 import numpy as np
 from SushiLife.Plot.Chart import *
 
+
 class Exchange:
     def __init__(self):
         self.fields = ["시가", "현재가", "고가", "저가", "거래량(주)", "거래대금(원)", "대비", "시장구분"]

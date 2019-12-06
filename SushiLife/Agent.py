@@ -5,6 +5,7 @@ import visdom
 import plotly
 import plotly.graph_objs as go
 
+
 class Agent:
     def __init__(self, initial_cash, 레버리지=1, 출력=True):
         self._출력 = 출력
@@ -105,7 +106,6 @@ class Agent:
         self.cash = self.accounts[name_account].sell(self.cash, names, 주문가격, 주문수량, **kwds)
         # self.cash += cash_earned
 
-
     def update_date(self, date):
         self._shopping_basket()
         self.total_balance = 0
@@ -133,9 +133,9 @@ class Agent:
         일평균수익률 = ((누적수익률 / 100 + 1) ** (1 / 경과) - 1) * 100
         CAGR = ((일평균수익률 / 100 + 1) ** 365 - 1) * 100
 
-        최대수익률 = max(누적수익률, np.max(self.report["누적수익률(%)"]))
+        최대수익률 = max(누적수익률, self.report["최대수익률(%)"][-1])
         DD = (누적수익률 - 최대수익률) / (최대수익률 + 100) * 100
-        MDD = min(DD, np.min(self.report["MDD"]))
+        MDD = min(DD, self.report["MDD"][-1])
 
         레포트_당일 = {"수익률(%)": 당일수익률, "누적수익률(%)": 누적수익률, "총자산(원)": 총자산, "현금자산": self.cash, "현물자산": self.total_balance,
                   "CAGR(%)": CAGR, "일평균수익률(%)": 일평균수익률, "MDD": MDD, "DD": DD, "최대수익률(%)": 최대수익률, "날짜": self._date}

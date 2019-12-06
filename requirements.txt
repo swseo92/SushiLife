@@ -1,0 +1,10 @@
+numpy
+scipy
+matplotlib
+pandas
+dask[complete]
+h5py
+visdom
+scikit-learn==0.20.4
+cython
+plotly
