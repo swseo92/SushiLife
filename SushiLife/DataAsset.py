@@ -25,7 +25,7 @@ def make_data(filename, name, data_df, fields=None, dtype=None, dates=None, ):
         fields = ["현재가", "시가", "고가", "저가", "대비", "거래량(주)", "거래대금(원)", "상장시가총액(원)", "시장구분"]
 
     for code in codes:
-        print(code)
+        # print(code)
         dummy = data_df[code][fields].reindex(dates).fillna(np.nan)
         list_data.append(np.array(dummy).reshape(len(dates), 1, -1))
 

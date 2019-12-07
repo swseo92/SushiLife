@@ -21,7 +21,7 @@ class AssetAccount(dict):
     AssetAccount.keys() : 보유한 주식의 리스트를 리턴
     """
 
-    def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True):
+    def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True, 매매기록=False):
         """
 
         :param exchange: SushiLife.Exchange, 해당 자산의 거래소
@@ -29,6 +29,8 @@ class AssetAccount(dict):
         :param 출력: bool, 거래내역 출력 여부
         """
         self._print = 출력
+        self._매매기록 = 매매기록
+        self.매매내역 = {'종목코드': list(), '수익금': list(), '수익률': list(), '자산대비수익률': list()}
         self.type = "Account"
         self._exchange = exchange
 
@@ -156,8 +158,8 @@ class AssetAccount(dict):
 
 
 class StockAccount(AssetAccount):
-    def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True):
-        AssetAccount.__init__(self, exchange, cost=cost, 출력=출력)
+    def __init__(self, exchange, cost=(0.3, 0.03, 0), 출력=True, 매매기록=False):
+        AssetAccount.__init__(self, exchange, cost=cost, 출력=출력, 매매기록=매매기록)
 
     def buy(self, cash, names, 주문가격, 주문수량, 주문종류=None, 주문시간=None):
         체결가, 현재가 = self._exchange.buy(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
@@ -183,7 +185,7 @@ class StockAccount(AssetAccount):
         체결가 = self._exchange.sell(names, 주문가격, 주문종류=주문종류, 주문시간=주문시간)
 
         체결 = ~np.isnan(체결가)
-        if self._print == True:
+        if self._print == True or self._매매기록:
             for i in range(len(체결)):
                 if 체결[i]:
                     수익률 = (체결가[i] * (100 - self._tax - self._fee - self._slippage) / 100 - self[names[i]]["평단가"]) / \
@@ -191,10 +193,18 @@ class StockAccount(AssetAccount):
                     수익금 = (체결가[i] * (100 - self._tax - self._fee - self._slippage) / 100 - self[names[i]]["평단가"]) * \
                           self[names[i]]["보유수량"]
 
-                    print("매도 체결 : ", names[i], "체결가 : ", 체결가[i], "주문수량 : ", 주문수량[i],
-                          " / 수익률(%) : ", 수익률, ", 수익금(원) : ", 수익금)
+                    if self._print:
+                        print("매도 체결 : ", names[i], "체결가 : ", 체결가[i], "주문수량 : ", 주문수량[i],
+                              " / 수익률(%) : ", 수익률, ", 수익금(원) : ", 수익금)
+
+                    if self._매매기록:
+                        self.매매내역['종목코드'].append(names[i])
+                        self.매매내역['수익률'].append(수익률)
+                        self.매매내역['수익금'].append(수익금)
+                        self.매매내역['자산대비수익률'].append(수익금 / self._total_balance)
                 else:
-                    print("매도 실패 : ", names[i], "주문가 : ", 주문가격[i], "주문수량 : ", 주문수량[i])
+                    if self._print:
+                        print("매도 실패 : ", names[i], "주문가 : ", 주문가격[i], "주문수량 : ", 주문수량[i])
 
         names = np.array(names)[체결]
         체결가 = 체결가[체결]
