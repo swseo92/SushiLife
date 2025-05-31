@@ -1,8 +1,9 @@
 import numpy as np
 import copy
 import pyximport
-pyximport.install()
-from SushiLife import Account_cython
+# Ensure numpy headers are available for Cython compilation
+pyximport.install(reload_support=True, setup_args={"include_dirs": np.get_include()})
+from SushiLife import Account_cython as Account_cython_module # Changed to import the now primary Account_cython.pyx
 
 
 class AssetAccount(dict):
@@ -136,16 +137,33 @@ class AssetAccount(dict):
         return names, current_price
 
     def _apply_current_price(self):
-        """
-        지갑에 소유한 자산들의 현재가와 총자산을 업데이트한다.
-        :return:
-        """
-        names, current_price = self._get_current_price()
+        names_list = list(self.keys()) # Keep as list of strings for Cython
+        if not names_list:
+            self._total_balance = 0 # No assets, so balance from assets is 0
+            return
+
+        # _get_current_price now returns (names_list, current_price_updates_for_holdings_array)
+        # where current_price_updates_for_holdings_array is (N, 2) with new price and '대비'
+        # For AssetAccount, _get_current_price might only return (N,1) if it doesn't handle '대비'
+        # This part needs to be consistent with what StockAccount._get_current_price returns.
+        # Assuming this is StockAccount being called, so current_price_updates_for_holdings has 2 columns.
+        # If this method is ever called on a plain AssetAccount, _get_current_price would need adjustment or this logic would.
+
+        # For the generic AssetAccount, we might not have '대비', so let's fetch only '현재가'
+        # and create a dummy '대비' if needed, or adjust Cython.
+        # However, the Cython code expects '대비'. The original non-stock AssetAccount._apply_current_price
+        # did not use Cython. This optimization is targeted at StockAccount.
+        # The current structure calls this method for StockAccount.
+
+        # This method will be effectively overridden by StockAccount's version for this optimization.
+        # So, the original logic for plain AssetAccount can be kept here, as it won't be hit by StockAccount instances.
+        original_names, original_current_price_flat = super()._get_current_price() # Call AssetAccount's _get_current_price
 
         self._total_balance = 0
-        for i in range(len(names)):
-            self[names[i]]["현재가"] = current_price[i]
-            self._total_balance += self[names[i]]["현재가"] * self[names[i]]["보유수량"]
+        for i in range(len(original_names)):
+            self[original_names[i]]["현재가"] = original_current_price_flat[i] # Assuming it's flat
+            self._total_balance += self[original_names[i]]["현재가"] * self[original_names[i]]["보유수량"]
+
 
     def update_from_agent(self, date):
         """
@@ -222,5 +240,50 @@ class StockAccount(AssetAccount):
         return names, current_price
 
     def _apply_current_price(self):
-        names, current_price = self._get_current_price()
-        self, self._total_balance = Account_cython.apply(self, names, current_price)
+        names_list = list(self.keys()) # Keep as list of strings for Cython
+        if not names_list:
+            self._total_balance = 0 # No assets, so balance from assets is 0
+            return
+
+        # _get_current_price now returns (names_list, current_price_updates_for_holdings_array)
+        # where current_price_updates_for_holdings_array is (N, 2) with new price and '대비'
+        _, current_price_updates_for_holdings = self._get_current_price()
+
+        평단가_arr = np.array([self[name]["평단가"] for name in names_list], dtype=np.double)
+        보유수량_arr = np.array([self[name]["보유수량"] for name in names_list], dtype=np.double)
+        현재가_arr_prev_day = np.array([self[name]["현재가"] for name in names_list], dtype=np.double)
+
+        # Call the modified Cython function
+        평단가_arr_updated, 보유수량_arr_updated, total_balance_from_cython, delisted_indices = \
+            Account_cython_module.apply(평단가_arr, 보유수량_arr, 현재가_arr_prev_day,
+                                      names_list, current_price_updates_for_holdings)
+
+        self._total_balance = total_balance_from_cython # This is based on prev day's prices * quantities
+
+        # Update account dictionary based on returned arrays
+        # Handle delisted items first by creating a list of names to delete
+        names_to_delete = []
+        for delisted_idx in sorted(delisted_indices, reverse=True): # Sort to avoid index issues when deleting
+            name_to_del = names_list[delisted_idx]
+            names_to_delete.append(name_to_del)
+            if self._print:
+                print(f"\x1b[31m\"{name_to_del}\"\x1b[0m  상장폐지 !!! ###################################")
+
+        for name_to_del in names_to_delete:
+            if name_to_del in self: # Check if not already deleted by other logic
+                 del self[name_to_del]
+
+        # Update existing holdings
+        for i, name in enumerate(names_list):
+            if i not in delisted_indices: # Only update if not delisted
+                if 보유수량_arr_updated[i] == 0: # If shares became zero due to split logic
+                    if name in self: # Check if not already deleted
+                       del self[name]
+                       if self._print:
+                           print(f"{name} 보유수량 0 되어 삭제.") # Shares became 0, deleted
+                else:
+                    if name in self: # Ensure it wasn't delisted
+                        self[name]["평단가"] = 평단가_arr_updated[i]
+                        self[name]["보유수량"] = 보유수량_arr_updated[i]
+                        # current_price_updates_for_holdings[i, 0] is today's actual market price
+                        self[name]["현재가"] = current_price_updates_for_holdings[i, 0]
