@@ -3,7 +3,7 @@ import copy
 import pyximport
 # Ensure numpy headers are available for Cython compilation
 pyximport.install(reload_support=True, setup_args={"include_dirs": np.get_include()})
-from SushiLife import Account_cython as Account_cython_module # Changed to import the now primary Account_cython.pyx
+from SushiLife import Account_cython_opt3 as Account_cython_module
 
 
 class AssetAccount(dict):
